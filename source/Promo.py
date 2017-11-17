@@ -1,3 +1,5 @@
+#Class promotion, able to store students 
+
 import os
 import Student
 import datetime
@@ -6,11 +8,11 @@ import matplotlib.dates as mdates
 import shutil
 from numbers import Number
 
-class Promo:
+class Promo: #Creator of the class
   def __init__(self, year = "", b_open = True):
-    self.s_year = year
-    self.s_students = []
-    if year != "" :
+    self.s_year = year #name of the class (could use something other than the year, but it is the most obvious choice)
+    self.s_students = [] #list of objects Student)
+    if year != "" : #if the name is precised, check if the promo already exists. If it does, opens it (unless precises otherwise), otherwise creates an empty one
       if not os.path.isdir(year):
         os.mkdir(year)
         self.s_promo_file = open(year + "/" + year, "w")
@@ -19,51 +21,62 @@ class Promo:
       elif b_open:
         self.Open()
 
-  def Remove(self):
+  def Remove(self):#removes the class folder entierely, including backups
     shutil.rmtree(self.s_year)  
   
-  def AddStudent(self, student):
+  def AddStudent(self, student):#adds a student to the current student list. With all its grades and knowhows, if any
     self.s_students.append(student)
     
-  def Open(self, promo_name = "", File = False):
-    if promo_name == "":
+  def Open(self, promo_name = "", File = False):#opens the class from its file
+    if promo_name == "":#if no name is given, use the name of the promotion
       promo_name = self.s_year
       File = False
-    if File:
+    if File:#Is used when specifying a file that is not in the directory containing all the promotions. promo_name should then be the path to the file.
       self.s_promo_file = open(promo_name,"r")
       if os.stat(promo_name).st_size == 0:
           print("Promotion " + self.s_year + " is empty.")
           self.s_promo_file.close()
-          return
-    else:
+          return "empty"
+    else:#open promotion file
       self.s_promo_file = open(promo_name + "/" + promo_name,"r")
       if os.stat(promo_name + "/" + promo_name).st_size == 0:
           print("Promotion " + self.s_year + " is empty.")
           self.s_promo_file.close()
-          return
+          exit(1)
+          return "empty"
+#will check if the file has correct format, then read line by line by separating the main objects, then the knowhows, then the marks and dates
     lines = self.s_promo_file.readlines()
     if lines[0] != 'students;grades;dates;knowhow\n':
       print("ERROR : promotion file " + promo_name + " has wrong format: \n First line is " + lines[0] + " but should be 'students;grades;dates;knowhow\n'")
       exit(0)
     lines = lines[1:]
     for i in range(0,len(lines)):
-      if lines[i] == "\n":
+      if lines[i] == "\n":#skip empty lines
         continue
       lines[i] = lines[i].split("\n")[0].split(";")
+      if len(lines[i]) != 4:
+        print("ERROR : wrong format at line " + str(i))
+        exit(0)
+      #object Student to fill
       tmp_student = Student.Student(lines[i][0])
+      #Is two students have the same name, stops.
       if lines[i][0] in [ st.GetName() for st in self.s_students ]:
         print("ERROR : " + tmp_student.GetName() + " is already in promotion " + self.s_year + ". Please avoid duplicate names.")
         exit(0)
+      #removes blanks in grades and dates
       marks = lines[i][1].replace(" ","").split(",")
       dates = lines[i][2].replace(" ","").split(",")
       knowhows = lines[i][3].split(",")
+      #checks if the number of knowhows matches the number of gradess and dates
       if len(marks) != len(knowhows) or len(marks) != len(dates) or len(knowhows) != len(dates):
-        print("ERROR : promotion file " + promo_name + " has wrong format at line " + str(i) + ": it has " + str(len(marks)) + " marks, " + str(len(dates)) + " and " + str(len(knowhows)) + " know-hows. Those three numbers should be equal.")
+        print("ERROR : promotion file " + promo_name + " has wrong format at line " + str(i) + ": it has " + str(len(marks)) + " marks, " + str(len(dates)) + " and " + str(len(knowhows)) + " knowhows. Those three numbers should be equal.")
         exit(0)
-      rec_marks = []
+      #splits the grades of a given knowhow. Idem for the dates.
+      rec_marks = [] #will contain a list of pairs (grade, date)
       for j in range(0,len(knowhows)):
         marks[j] = marks[j].split("+")
         dates[j] = dates[j].split("+")
+        #check if dates have correct format, and pairs marks and dates
         for mark, mydate in zip(marks[j], dates[j]):
           if "/" not in mydate:
             print("ERROR : " + mydate + " has wrong format. Please use day/month/year")
@@ -89,24 +102,29 @@ class Promo:
             print("ERROR : promotion file " + promo_name + " has wrong format at line " + str(i+1) + ": the date " + mydate + " is not a valid date format.")
             exit(0)
           rec_marks.append([mark,datetime.date(year, month, day)])
+        #add the knowhow and the corresponding grades and dates to the current student
         tmp_student.AddKnowhow(knowhows[j], rec_marks)
         rec_marks = []
+      #Add current student to promotion
       self.AddStudent(tmp_student)
     self.s_promo_file.close()
     
+    
+  #Save the promotion to a file specified by the argument year. If not specified, updates the current promotion file. Creates a backup of the new promotion, keeps up to 5 backups.
   def Save(self, year = ""):
     if year == "":
       year = self.s_year
       print("Updating promotion " + year + "...")
     else:
       if os.path.isdir(year):
-        bool_ecrase = input("Promotion " + year + " alreasy exists. Do you want to erase it? (y/n) \n")
+        bool_ecrase = input("Promotion " + year + " already exists. Do you want to erase it? (y/n) \n")
         while bool_ecrase != "n" and bool_ecrase != "y":
           bool_ecrase = input("Please answer by y or n. \n")
         if bool_ecrase == "n":
           print("ok ciao")
           exit(1)
       print("Saving new promotion " + year + "...")
+        
     self.s_promo_file = open(year + "/" + year,"w")
     self.s_promo_file.write("students;grades;dates;knowhow\n")
     for student in self.s_students:
@@ -129,7 +147,21 @@ class Promo:
       line = line + marksline + datesline + knowhowsline + "\n"
       self.s_promo_file.write(line)
     self.s_promo_file.close()
+    
+    #backs up
+    if not os.path.isdir(year + os.sep + "backup"):
+      os.mkdir(year + os.sep + "backup")
+    for i in range(1,6):
+      if not os.path.isfile(year + os.sep + "backup" + os.sep + year + "_" + str(i)):
+        shutil.copy(year,year + os.sep + "backup" + os.sep + year + "_" + str(i))
+        return
+    os.remove(year + os.sep + "backup" + os.sep + year + "_1")
+    for i in range(2,6):
+      shutil.move(year + os.sep + "backup" + os.sep + year + "_" + str(i), year + os.sep + "backup" + os.sep + year + "_" + str(i-1))
+    shutil.copy(year,year + os.sep + "backup" + os.sep + year + "_5")
         
+      
+  #Accessors and modifiers
   def GetStudent(self, student_name):
     names = self.GetStudentsNames()
     if not student_name in names:
