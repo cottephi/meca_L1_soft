@@ -40,7 +40,7 @@ class Student:
         if not  type(mark[1]) is datetime.date:#expects second item to be a datetime.date object
           print("ERROR : " + date + " must be datetime.date object.")
           exit(0)
-      if self.s_knowhows[knowhow] = "":
+      if len(self.s_knowhows[knowhow][0]) == 0:#if current grade list is empty
         new_marks = marks
       else:
         old_marks = self.s_knowhows[knowhow]
@@ -54,7 +54,7 @@ class Student:
       if not  type(mark[1]) is datetime.date:
         print("ERROR : " + date + " must be datetime.date object.")
         exit(0)
-      if self.s_knowhows[knowhow] = "":
+      if len(self.s_knowhows[knowhow][0]) == 0:#if current grade list is empty
         new_marks = marks
       else:
         new_marks = self.s_knowhows[knowhow]
@@ -79,19 +79,34 @@ class Student:
   def GetMean(self, knowhow = ""):
     mean = {}
     if knowhow == "":
+      if len(self.s_knowhows) == 0:
+        print("No knowhows for student " + self.s_name + ".")
+        exit(0)
       for knowhow in self.s_knowhows:
-        mean[knowhow] = 0
-        marks = 0
         for mark in self.s_knowhows[knowhow]:
-          mean[knowhow] = float(mean[knowhow]) + float(mark[0])
-          marks = marks + 1
+          if len(mark) == 0:
+            continue
+          if not knowhow in mean:
+            mean[knowhow] = float(mark[0])
+            marks = 1
+          else:
+            mean[knowhow] = float(mean[knowhow]) + float(mark[0])
+            marks = marks + 1
+        if not knowhow in mean:
+          continue
         mean[knowhow] = mean[knowhow]/marks
+      if len(mean) == 0:
+        print("ERROR : no grades for student " + self.s_name + ".")
+        exit(0)
     else:
       marks = 0
       if not IsKnowhow(knowhow):
         print("ERROR : knowhow " + " is not in " + self.s_name + "\'s list of knowhows")
         exit(0)
       for mark in self.s_knowhows[knowhow]:
+        if len(mark) == 0:
+          print("ERROR : no grades for knowhow " + knowhow + " for student " + self.s_name + ".")
+          exit(0)
         mean[knowhow] = float(mean[knowhow]) + float(mark[0])
         marks = marks + 1
       mean[knowhow] = mean[knowhow]/marks

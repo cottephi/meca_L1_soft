@@ -76,6 +76,7 @@ def main(argv):
     elif opt == "-s":
       student_opt = True
       student_arg = arg
+      print(student_arg)
     elif opt == "-k":
       knowhow_opt = True
       knowhow_arg = arg
@@ -105,7 +106,7 @@ def main(argv):
   #if -n option was specified : create new promotion
   if create_new:
     if not year_opt: #if promotion name was not specified (-y option)
-      promo_name = input("Please indicate the name of the promotion you want to create (write current to use " +  GetCurrentPromoName() + ") \n")
+      promo_name = str(input("Please indicate the name of the promotion you want to create (write current to use " +  GetCurrentPromoName() + ") \n"))
     if promo_name == "":
       print("Can not have empty name")
       exit(0)
@@ -217,11 +218,11 @@ def main(argv):
           mark_arg = mark_arg.split(" ")
           for i in range(0,len(mark_arg)):
             if mark_arg[i] == "" or "-" not in mark_arg[i]:
-              print("ERROR : " + marks + " has wrong format. Should be mark1-date1 mark2-date2 etc...")
+              print("ERROR : " + mark_arg[i] + " has wrong format. Should be \"mark1-date1 mark2-date2 etc...\"")
               exit(0)
             mark_arg[i] = mark_arg[i].split("-")
             if len(mark_arg[i]) != 2:
-              print("ERROR : " + marks + " has wrong format. Should be mark1-date1 mark2-date2 etc...")
+              print("ERROR : " + mark_arg[i] + " has wrong format. Should be \"mark1-date1 mark2-date2 etc...\"")
               exit(0)
             if "/" not in mark_arg[i][1]:
               print("ERROR : " + mark_arg[i][1] + " has wrong format. Please use day/month/year")

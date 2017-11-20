@@ -15,7 +15,7 @@ class Promo: #Creator of the class
     if year != "" : #if the name is precised, check if the promo already exists. If it does, opens it (unless precises otherwise), otherwise creates an empty one
       if not os.path.isdir(year):
         os.mkdir(year)
-        self.s_promo_file = open(year + "/" + year, "w")
+        self.s_promo_file = open(year + os.sep + year, "w")
         self.s_promo_file.write('students;grades;dates;knowhow\n')
         self.s_promo_file.close()
       elif b_open:
@@ -38,8 +38,8 @@ class Promo: #Creator of the class
           self.s_promo_file.close()
           return "empty"
     else:#open promotion file
-      self.s_promo_file = open(promo_name + "/" + promo_name,"r")
-      if os.stat(promo_name + "/" + promo_name).st_size == 0:
+      self.s_promo_file = open(promo_name + os.sep + promo_name,"r")
+      if os.stat(promo_name + os.sep + promo_name).st_size == 0:
           print("Promotion " + self.s_year + " is empty.")
           self.s_promo_file.close()
           exit(1)
@@ -63,6 +63,10 @@ class Promo: #Creator of the class
       if lines[i][0] in [ st.GetName() for st in self.s_students ]:
         print("ERROR : " + tmp_student.GetName() + " is already in promotion " + self.s_year + ". Please avoid duplicate names.")
         exit(0)
+      #if no knowhows in this line, save student to promo and continue to next line
+      if len(lines[i][3]) == 0:
+        self.AddStudent(tmp_student)
+        continue
       #removes blanks in grades and dates
       marks = lines[i][1].replace(" ","").split(",")
       dates = lines[i][2].replace(" ","").split(",")
@@ -74,6 +78,10 @@ class Promo: #Creator of the class
       #splits the grades of a given knowhow. Idem for the dates.
       rec_marks = [] #will contain a list of pairs (grade, date)
       for j in range(0,len(knowhows)):
+        #if no grades for this knowhow, save knowhow to student and continue to next knowhow
+        if len(marks[j]) == 0:
+          tmp_student.AddKnowhow(knowhows[j])
+          continue
         marks[j] = marks[j].split("+")
         dates[j] = dates[j].split("+")
         #check if dates have correct format, and pairs marks and dates
@@ -125,18 +133,30 @@ class Promo: #Creator of the class
           exit(1)
       print("Saving new promotion " + year + "...")
         
-    self.s_promo_file = open(year + "/" + year,"w")
+    self.s_promo_file = open(year + os.sep + year,"w")
     self.s_promo_file.write("students;grades;dates;knowhow\n")
+    if len(self.s_students) == 0:
+      self.s_promo_file.close()
+      return
     for student in self.s_students:
       line = student.GetName()
       marksline = ";"
       datesline = ";"
       knowhowsline = ";"
+      if len(student.GetKnowhows()) == 0:
+        line = line + marksline + datesline + knowhowsline + "\n"
+        self.s_promo_file.write(line)
+        self.s_promo_file.close()
+        return
       for knowhow in student.GetKnowhows():
         knowhowsline = knowhowsline + knowhow + ","
         for mark in student.GetKnowhowMarks(knowhow):
+          if len(mark) == 0:
+            marksline = marksline + "+"
+            datesline = datesline + "+"
+            continue
           marksline = marksline + str(mark[0]) + "+"
-          datesline = datesline + str(mark[1].day) + "/" + str(mark[1].month) + "/" + str(mark[1].year) + "+"
+          datesline = datesline + str(mark[1].day) + os.sep + str(mark[1].month) + os.sep + str(mark[1].year) + "+"
         marksline = marksline[:-1]
         marksline = marksline + ","
         datesline = datesline[:-1]
@@ -153,12 +173,12 @@ class Promo: #Creator of the class
       os.mkdir(year + os.sep + "backup")
     for i in range(1,6):
       if not os.path.isfile(year + os.sep + "backup" + os.sep + year + "_" + str(i)):
-        shutil.copy(year,year + os.sep + "backup" + os.sep + year + "_" + str(i))
+        shutil.copy(year + os.sep + year,year + os.sep + "backup" + os.sep + year + "_" + str(i))
         return
     os.remove(year + os.sep + "backup" + os.sep + year + "_1")
     for i in range(2,6):
       shutil.move(year + os.sep + "backup" + os.sep + year + "_" + str(i), year + os.sep + "backup" + os.sep + year + "_" + str(i-1))
-    shutil.copy(year,year + os.sep + "backup" + os.sep + year + "_5")
+    shutil.copy(year + os.sep + year,year + os.sep + "backup" + os.sep + year + "_5")
         
       
   #Accessors and modifiers
@@ -186,6 +206,8 @@ class Promo: #Creator of the class
     
   def PlotAll(self):
     for student in self.s_students:
+      if not os.path.isdir(self.s_year + os.sep + student.GetName()):
+        os.mkdir(self.s_year + os.sep + student.GetName())
       mean = student.GetMean()
       print(student.GetName())
       for mark in mean:
@@ -193,18 +215,22 @@ class Promo: #Creator of the class
       for knowhow in student.GetKnowhows():
         dates = []
         marks = []
+        if len(student.GetKnowhowMarks(knowhow)[0]) == 0:
+          continue
         for mark in student.GetKnowhowMarks(knowhow):
           dates.append(mark[1])
           marks.append(mark[0])
         plt.title(student.GetName() + " : " + knowhow)
         plt.gca().xaxis.set_major_formatter(mdates.DateFormatter('%d/%m/%Y'))
         plt.gca().xaxis.set_major_locator(mdates.DayLocator())
-        plt.gca().set_ylim([0,20])
+        plt.gca().set_ylim([-1,21])
+        print(max(dates))
+        plt.gca().set_xlim([min(dates) - datetime.timedelta(days=1),max(dates) + datetime.timedelta(days=1)])
         plt.plot(dates, marks, 'ro')
         plt.gcf().autofmt_xdate()
-        plt.savefig(self.s_year + "/" + student.GetName() + "_" + knowhow + ".pdf")
+        plt.savefig(self.s_year + os.sep + student.GetName() + os.sep + knowhow + ".pdf")
         plt.close()
-        print("Plotted ./" + self.s_year + "/" + student.GetName() + "_" + knowhow + ".pdf")
+        print("Plotted " + self.s_year + os.sep + student.GetName() + os.sep + knowhow + ".pdf")
     
   def IsStudent(self, student_name):
     names = self.GetStudentsNames()
