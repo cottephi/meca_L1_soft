@@ -123,8 +123,8 @@ def main(argv):
       print("Deleted promotion " + promo_name)
     if file_opt: #if -f option is specified, try to create promotion from file
       print("Creating new promotion from file " + file_arg + "...")
-      promotion = Promo.Promo(promo_name)
-      promotion.Open(file_arg)
+      promotion = Promo.Promo(promo_name, False)
+      promotion.Open(file_arg, True)
       promotion.Save()
       if plot_opt:
         promotion.PlotAll()

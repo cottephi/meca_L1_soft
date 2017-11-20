@@ -47,10 +47,40 @@ class Promo: #Creator of the class
 #will check if the file has correct format, then read line by line by separating the main objects, then the knowhows, then the marks and dates
     lines = self.s_promo_file.readlines()
     if lines[0] != 'students;grades;dates;knowhow\n':
-      print("ERROR : promotion file " + promo_name + " has wrong format: \n First line is " + lines[0] + " but should be 'students;grades;dates;knowhow\n'")
-      exit(0)
-    lines = lines[1:]
-    for i in range(0,len(lines)):
+      if lines[0] == 'students;knowhow\n' and File:#if file is list of student and list of knowhows
+        for i in range(1,len(lines)):
+          if lines[i] == "\n":#skip empty lines
+            continue
+          l = lines[i].split("\n")[0].split(";")
+          if len(l) != 2:
+            print("ERROR : wrong format at line " + str(i))
+          if l[0] == "":
+            continue
+          tmp_student = Student.Student(l[0])
+          if l[0] in [ st.GetName() for st in self.s_students ]:
+            print("ERROR : " + tmp_student.GetName() + " is already in promotion " + self.s_year + ". Please avoid duplicate names.")
+            exit(0)
+          for j in range(1,len(lines)):
+            if lines[j] == "\n":#skip empty lines
+              continue
+            l = lines[j].split("\n")[0].split(";")
+            if len(l) != 2:
+              print("ERROR : wrong format at line " + str(j))
+            if l[1] == "":
+              continue
+            if tmp_student.IsKnowhow(l[1]):
+              print("ERROR : duplicate knowhow name " + l[1] + ".")
+              exit(0)
+            tmp_student.AddKnowhow(l[1])
+          self.AddStudent(tmp_student)
+        self.s_promo_file.close()
+        return
+      else:
+        print("ERROR : promotion file " + promo_name + " has wrong format: \n First line is " + lines[0] + " but should be 'students;grades;dates;knowhow'")
+        exit(0)
+        
+    #if normal first line format
+    for i in range(1,len(lines)):
       if lines[i] == "\n":#skip empty lines
         continue
       lines[i] = lines[i].split("\n")[0].split(";")
@@ -150,11 +180,9 @@ class Promo: #Creator of the class
         return
       for knowhow in student.GetKnowhows():
         knowhowsline = knowhowsline + knowhow + ","
+        if len(student.GetKnowhowMarks(knowhow)[0]) == 0:
+          continue
         for mark in student.GetKnowhowMarks(knowhow):
-          if len(mark) == 0:
-            marksline = marksline + "+"
-            datesline = datesline + "+"
-            continue
           marksline = marksline + str(mark[0]) + "+"
           datesline = datesline + str(mark[1].day) + os.sep + str(mark[1].month) + os.sep + str(mark[1].year) + "+"
         marksline = marksline[:-1]
@@ -162,8 +190,9 @@ class Promo: #Creator of the class
         datesline = datesline[:-1]
         datesline = datesline + ","
       knowhowsline = knowhowsline[:-1]
-      marksline = marksline[:-1]
-      datesline = datesline[:-1]
+      if marksline != ";":
+        marksline = marksline[:-1]
+        datesline = datesline[:-1]
       line = line + marksline + datesline + knowhowsline + "\n"
       self.s_promo_file.write(line)
     self.s_promo_file.close()
